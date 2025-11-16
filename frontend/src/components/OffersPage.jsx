@@ -1,1 +1,0 @@
-export default function OffersPage(){ return <div className='page'><h1>💸 Offers</h1><p>No offers yet.</p></div> }
