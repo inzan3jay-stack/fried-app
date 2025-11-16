@@ -1,0 +1,49 @@
+const fs = require('fs');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+
+const DB_PATH = path.join(__dirname, 'database.sqlite');
+const SCHEMA = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+
+const db = new sqlite3.Database(DB_PATH);
+
+function run(sql, params=[]) {
+  return new Promise((res, rej) => {
+    db.run(sql, params, function(err) {
+      if (err) rej(err); else res(this);
+    });
+  });
+}
+
+async function init() {
+  try {
+    await run("PRAGMA foreign_keys = ON;");
+    await new Promise((resolve, reject) => {
+      db.exec(SCHEMA, (err) => err ? reject(err) : resolve());
+    });
+
+    const menuItems = [
+      ["Furious Classic (thigh)", "Crispy thigh, signature spice", 699, "/images/chicken1.jpg"],
+      ["Spicy Blaze Burger", "Double spice, jalapeño slaw", 759, "/images/chicken2.jpg"],
+      ["Wing Box (6)", "Mixed hot and mild wings, dipping sauce", 599, "/images/wings.jpg"],
+      ["Loaded Fries", "Fries with pulled jerk chicken, cheese", 399, "/images/fries.jpg"],
+      ["Plant Power (vegan)", "Crispy plant patty, vegan slaw", 649, "/images/vegan.jpg"]
+    ];
+
+    let stmt = db.prepare("INSERT INTO menu (name, description, price_cents, image) VALUES (?, ?, ?, ?)");
+    for (const item of menuItems) stmt.run(item);
+    stmt.finalize();
+
+    console.log("Database initialized and seeded.");
+    process.exit(0);
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+}
+
+if (require.main === module) {
+  if (process.argv.includes('--init')) init();
+}
+
+module.exports = db;
